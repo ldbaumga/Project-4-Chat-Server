@@ -5,17 +5,25 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 final class ChatServer {
     private static int uniqueId = 0;
     private final List<ClientThread> clients = new ArrayList<>();
     private final int port;
+    private SimpleDateFormat d = new SimpleDateFormat("HH:mm:ss");
 
 
     private ChatServer(int port) {
         this.port = port;
+    }
+
+    private ChatServer() {
+        this.port = 1500;
     }
 
     /*
@@ -25,14 +33,27 @@ final class ChatServer {
     private void start() {
         try {
             ServerSocket serverSocket = new ServerSocket(port);
-            Socket socket = serverSocket.accept();
-            Runnable r = new ClientThread(socket, uniqueId++);
-            Thread t = new Thread(r);
-            clients.add((ClientThread) r);
-            t.start();
+            while (true) {
+                Socket socket = serverSocket.accept();
+                Runnable r = new ClientThread(socket, uniqueId++);
+                Thread t = new Thread(r);
+                clients.add((ClientThread) r);
+                t.start();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private synchronized void  broadcast(String message) {
+        System.out.println(message);
+        for (int x = 0; x < clients.size(); x++) {
+            clients.get(x).writeMessage(message);
+        }
+    }
+
+    private synchronized void remove(int d) {
+        clients.remove(d);
     }
 
     /*
@@ -82,11 +103,38 @@ final class ChatServer {
                 e.printStackTrace();
             }
             System.out.println(username + ": Ping");
+            //TODO!!! change cm to broadcast the message!
 
 
             // Send message back to the client
             try {
-                sOutput.writeObject("Pong");
+                sOutput.writeObject("Poing!");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+        //Synchronized might not be needed here
+        private synchronized boolean writeMessage(String msg) {
+            String date = d.format(new Date());
+            if (!socket.isConnected()) {
+                return false;
+            }
+            try {
+                sOutput.writeObject(date + " " + username + " " + msg);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return true;
+        }
+
+
+        private void close() {
+            try {
+                sInput.close();
+                sOutput.close();
+                socket.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
