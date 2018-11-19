@@ -133,9 +133,13 @@ final class ChatServer {
                 broadcast(username + ": " + cm.getMessage());
             } else if(cm.getType() == 1) {
                 System.out.println(username + " disconnected with a LOGOUT message.");
-                sInput.close();
-                sOutput.close();
-                socket.close();
+                try {
+                    sInput.close();
+                    sOutput.close();
+                    socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
                
 //            broadcast("Hello!");
