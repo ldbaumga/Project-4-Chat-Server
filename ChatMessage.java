@@ -45,5 +45,9 @@ final class ChatMessage implements Serializable {
     public String getRecipient() {
         return recipient;
     }
+    
+    public boolean isListMessage () {
+        return isListMessage;
+    }
 
 }
