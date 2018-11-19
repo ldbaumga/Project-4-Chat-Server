@@ -16,14 +16,18 @@ final class ChatServer {
     private final List<ClientThread> clients = new ArrayList<>();
     private final int port;
     private SimpleDateFormat d = new SimpleDateFormat("HH:mm:ss");
+    private String file;
+    private int x;
 
 
-    private ChatServer(int port) {
+    private ChatServer(int port, String badwords) {
+        this.file = badwords;
         this.port = port;
     }
 
     private ChatServer() {
         this.port = 1500;
+        this.file = "C:\\Users\\ldbau\\IdeaProjects\\Project4\\src\\badwords.txt";
     }
 
     /*
@@ -33,12 +37,16 @@ final class ChatServer {
     private void start() {
         try {
             ServerSocket serverSocket = new ServerSocket(port);
+            System.out.println(d.format(new Date()) + " Server waiting for clients on port " + this.port + ".");
+
             while (true) {
+                //System.out.println(d.format(new Date()) + " Server waiting for clients on port " + this.port + ".");
                 Socket socket = serverSocket.accept();
                 Runnable r = new ClientThread(socket, uniqueId++);
                 Thread t = new Thread(r);
                 clients.add((ClientThread) r);
                 t.start();
+//                broadcast("just connected.");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -46,9 +54,13 @@ final class ChatServer {
     }
 
     private synchronized void  broadcast(String message) {
-        System.out.println(message);
+        x = 0;
+        ChatFilter cf = new ChatFilter(this.file);
+        String newmessage = "";
+        newmessage = cf.filter(message);
+//        System.out.println(d.format(new Date()) + " " + message);
         for (int x = 0; x < clients.size(); x++) {
-            clients.get(x).writeMessage(message);
+            this.clients.get(x).writeMessage(newmessage);
         }
     }
 
@@ -62,7 +74,7 @@ final class ChatServer {
      *  If the port number is not specified 1500 is used
      */
     public static void main(String[] args) {
-        ChatServer server = new ChatServer(1500);
+        ChatServer server = new ChatServer(1500, "C:\\Users\\ldbau\\IdeaProjects\\Project4\\src\\badwords.txt");
         server.start();
     }
 
@@ -96,33 +108,55 @@ final class ChatServer {
          */
         @Override
         public void run() {
+            broadcast(username + " just connected.");
             // Read the username sent to you by client
             try {
                 cm = (ChatMessage) sInput.readObject();
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
-            System.out.println(username + ": Ping");
-            //TODO!!! change cm to broadcast the message!
 
-
-            // Send message back to the client
-            try {
-                sOutput.writeObject("Poing!");
-            } catch (IOException e) {
-                e.printStackTrace();
+           if (cm.getType() == 2) {
+               String list = "";
+               if (clients.size() > 1) {
+                   for (int y = 0; y < clients.size(); y++) {
+                       list += clients.get(x).username + "\n";
+                   }
+                   list.replace(username + "\n", "");
+                   try {
+                       sOutput.writeObject(list);
+                   } catch (IOException e) {
+                       e.printStackTrace();
+                   }
+               }
+            } else if (cm.getType() == 0) {
+                broadcast(username + " " + cm.getMessage());
             }
+//            broadcast("Hello!");
+//            // Send message back to the client
+//            try {
+//                sOutput.writeObject("Poing!");
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
         }
 
 
         //Synchronized might not be needed here
-        private synchronized boolean writeMessage(String msg) {
+        private boolean writeMessage(String msg) {
             String date = d.format(new Date());
             if (!socket.isConnected()) {
                 return false;
             }
+            String newmsg = "";
+//            newmsg = date + " " + username + ": " + msg;
+            newmsg = date + " " + ": " + msg;
+            if (x == 0) {
+                System.out.println(newmsg);
+                x++;
+            }
             try {
-                sOutput.writeObject(date + " " + username + " " + msg);
+                sOutput.writeObject(newmsg + "\n");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -132,9 +166,9 @@ final class ChatServer {
 
         private void close() {
             try {
+                broadcast(username + "disconnected with a LOGOUT message.");
                 sInput.close();
                 sOutput.close();
-                socket.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
