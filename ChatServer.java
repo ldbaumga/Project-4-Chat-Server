@@ -130,8 +130,14 @@ final class ChatServer {
                    }
                }
             } else if (cm.getType() == 0) {
-                broadcast(username + " " + cm.getMessage());
+                broadcast(username + ": " + cm.getMessage());
+            } else if(cm.getType() == 1) {
+                System.out.println(username + " disconnected with a LOGOUT message.");
+                sInput.close();
+                sOutput.close();
+                socket.close();
             }
+               
 //            broadcast("Hello!");
 //            // Send message back to the client
 //            try {
