@@ -43,14 +43,17 @@ final class ChatClient {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        Runnable r = new ListenFromServer();
+        Thread t = new Thread(r);
+        t.start();
 
         while (scanner.hasNextLine()) {
             message = scanner.nextLine();
 
             try {
                 if (message.equalsIgnoreCase("/logout")) {
-                    running = false;
                     sOutput.writeObject(new ChatMessage(message, 1));
+                    running = false;
                     sInput.close();
                     sOutput.close();
                     socket.close();
@@ -92,9 +95,9 @@ final class ChatClient {
 
         // This thread will listen from the server for incoming messages
 
-        Runnable r = new ListenFromServer();
-        Thread t = new Thread(r);
-        t.start();
+//        Runnable r = new ListenFromServer();
+//        Thread t = new Thread(r);
+//        t.start();
 
 
         return true;
@@ -168,7 +171,8 @@ final class ChatClient {
                     String msg = (String) sInput.readObject();
                     System.out.print(msg);
                 } catch (IOException | ClassNotFoundException e) {
-                    e.printStackTrace();
+//                    e.printStackTrace();
+                    System.out.println("You have Logged out.");
                 }
             }
         }

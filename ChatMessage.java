@@ -46,4 +46,7 @@ final class ChatMessage implements Serializable {
         return recipient;
     }
 
+    public boolean getisListMessage(){
+        return this.isListMessage;
+    }
 }

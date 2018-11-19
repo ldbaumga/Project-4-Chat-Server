@@ -108,30 +108,44 @@ final class ChatServer {
          */
         @Override
         public void run() {
-            broadcast(username + " just connected.");
+            System.out.println(username + ": just connected.");
             // Read the username sent to you by client
-            try {
-                cm = (ChatMessage) sInput.readObject();
-            } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-
-           if (cm.getType() == 2) {
-               String list = "";
-               if (clients.size() > 1) {
-                   for (int y = 0; y < clients.size(); y++) {
-                       list += clients.get(x).username + "\n";
-                   }
-                   list.replace(username + "\n", "");
-                   try {
-                       sOutput.writeObject(list);
-                   } catch (IOException e) {
-                       e.printStackTrace();
-                   }
-               }
-            } else if (cm.getType() == 0) {
-                broadcast(username + " " + cm.getMessage());
-            }
+            while (true) {
+                try {
+                    cm = (ChatMessage) sInput.readObject();
+                } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
+                    break;
+                }
+                if (cm.getType() == 1) {
+                    this.close();
+                    remove(this.id);
+                    break;
+                }
+                if (cm.getisListMessage()) {
+                    String list = "";
+                    if (clients.size() > 1) {
+                        for (int y = 0; y < clients.size(); y++) {
+                            list += clients.get(y).username + "\n";
+                        }
+                        list = list.replaceAll(username + "\n", "");
+                        try {
+                            sOutput.writeObject(list);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            break;
+                        }
+                    } else {
+                        try {
+                            sOutput.writeObject("Your the only one connected.\n");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            break;
+                        }
+                    }
+                } else if (cm.getType() == 0) {
+                    broadcast(username + ": " + cm.getMessage());
+                }
 //            broadcast("Hello!");
 //            // Send message back to the client
 //            try {
@@ -139,6 +153,7 @@ final class ChatServer {
 //            } catch (IOException e) {
 //                e.printStackTrace();
 //            }
+            }
         }
 
 
@@ -150,7 +165,7 @@ final class ChatServer {
             }
             String newmsg = "";
 //            newmsg = date + " " + username + ": " + msg;
-            newmsg = date + " " + ": " + msg;
+            newmsg = date + " " + msg;
             if (x == 0) {
                 System.out.println(newmsg);
                 x++;
@@ -166,7 +181,8 @@ final class ChatServer {
 
         private void close() {
             try {
-                broadcast(username + "disconnected with a LOGOUT message.");
+                broadcast(username + ": disconnected with a LOGOUT message.");
+                socket.close();
                 sInput.close();
                 sOutput.close();
             } catch (IOException e) {
