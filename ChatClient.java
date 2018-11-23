@@ -31,8 +31,9 @@ final class ChatClient {
         String message;
         try {
             socket = new Socket(server, port);
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException | NullPointerException e) {
+//            System.out.println("There was a problem connecting to the server.");
+//            e.printStackTrace();
         }
 
         // Create your input and output streams
@@ -41,7 +42,8 @@ final class ChatClient {
             sOutput = new ObjectOutputStream(socket.getOutputStream());
             sOutput.writeObject(username);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("There was a problem creating your input and output streams.");
+//            e.printStackTrace();
         }
         Runnable r = new ListenFromServer();
         Thread t = new Thread(r);
@@ -60,13 +62,15 @@ final class ChatClient {
                     break;
                 }
                 if (message.startsWith("/msg")) {
-                    //TODO: send to only the username
+                    String[] rep = message.split(" ");
+                    String dirMsg = message.substring(2 + rep[0].length() + rep[1].length());
+
                     try {
-                        ChatMessage cm = (ChatMessage) sInput.readObject();
-                        sOutput.writeObject(new ChatMessage(message, 0, cm.getRecipient()));
-                    } catch (ClassNotFoundException e) {
-                        e.printStackTrace();
+                        sOutput.writeObject(new ChatMessage(dirMsg, 0, rep[1]));
+                    } catch (ArrayIndexOutOfBoundsException e) {
+                        System.out.println("Please type a valid direct message command.");
                     }
+                    continue;
                 }
                 sOutput.writeObject(new ChatMessage(message, 0));
 
@@ -153,7 +157,11 @@ final class ChatClient {
         }
 
         ChatClient client = new ChatClient(server, Integer.parseInt(port), user);
-        client.start();
+        try {
+            client.start();
+        } catch (NullPointerException e) {
+            System.out.println("There was a problem connecting to the server.");
+        }
 
         // Send an empty message to the server
     }
