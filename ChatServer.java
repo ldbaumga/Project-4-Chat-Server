@@ -1,5 +1,3 @@
-
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -53,7 +51,7 @@ final class ChatServer {
         }
     }
 
-    private synchronized void  broadcast(String message) {
+    private synchronized void broadcast(String message) {
         x = 0;
         ChatFilter cf = new ChatFilter(this.file);
         String newmessage = "";
@@ -66,6 +64,18 @@ final class ChatServer {
 
     private synchronized void remove(int d) {
         clients.remove(d);
+    }
+
+    private void directMessage(String message, String username) {
+        x = 0;
+        ChatFilter cf = new ChatFilter(this.file);
+        String newmessage = "";
+        newmessage = cf.filter(message);
+        for (int x = 0; x < clients.size(); x++) {
+            if (this.clients.get(x).username.equalsIgnoreCase(username)) {
+                this.clients.get(x).writeMessage(newmessage);
+            }
+        }
     }
 
     /*
@@ -108,13 +118,14 @@ final class ChatServer {
          */
         @Override
         public void run() {
-            System.out.println(username + ": just connected.");
+            System.out.println(username + " just connected.");
             // Read the username sent to you by client
             while (true) {
                 try {
                     cm = (ChatMessage) sInput.readObject();
                 } catch (IOException | ClassNotFoundException e) {
-                    e.printStackTrace();
+                    System.out.println(username+ " disconnected.");
+                   // e.printStackTrace();
                     break;
                 }
                 if (cm.getType() == 1) {
@@ -137,11 +148,23 @@ final class ChatServer {
                         }
                     } else {
                         try {
-                            sOutput.writeObject("Your the only one connected.\n");
+                            sOutput.writeObject("You're the only one connected.\n");
                         } catch (IOException e) {
                             e.printStackTrace();
                             break;
                         }
+                    }
+                } else if (cm.getMessage().startsWith("/msg")) {
+                    boolean clientPresent = false;
+                    for(int i= 0; i<clients.size(); i++) {
+                        if(clients.get(i).username.equals(cm.getRecipient())){
+                            clientPresent = true;
+                            break;
+                        }
+                    }
+                    if(!username.equals(cm.getRecipient()) && clientPresent) {
+                        String actualMessage = cm.getMessage().substring(cm.getMessage().indexOf(" ", 5) + 1);
+                        directMessage(username + ": " + actualMessage, cm.getRecipient());
                     }
                 } else if (cm.getType() == 0) {
                     broadcast(username + ": " + cm.getMessage());
