@@ -67,17 +67,19 @@ final class ChatServer {
     private synchronized void directMessage(String message, String username, int id) {
         x = 0;
         int u = -1;
+        ChatFilter cf = new ChatFilter(this.file);
         for (int x = 0; x < clients.size(); x++) {
             if (clients.get(x).username.equals(username)) {
                 u = x;
                 break;
             }
         }
-//        System.out.println(message);
         if (u == -1) {
-            clients.get(u).writeMessage("This user does not exist.");
+            clients.get(id).writeMessage("This user does not exist.");
         } else {
-            clients.get(u).writeMessage(message);
+            String newMsg = cf.filter(message);
+//        System.out.println(message);
+            clients.get(u).writeMessage(newMsg);
         }
     }
 
@@ -145,7 +147,7 @@ final class ChatServer {
                             continue;
                         }
                     }
-                    String dirMsg = username + " -> " + cm.getMessage();
+                    String dirMsg = username + " -> " + cm.getRecipient() + ": " + cm.getMessage();
                     directMessage(dirMsg, cm.getRecipient(), this.id);
                     continue;
                 }
