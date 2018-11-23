@@ -1,7 +1,9 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.Scanner;
 
 final class ChatClient {
@@ -25,13 +27,18 @@ final class ChatClient {
      * This starts the Chat Client
      */
     private boolean start() {
-        // Create a socket
 
         Scanner scanner = new Scanner(System.in);
         String message;
         try {
             socket = new Socket(server, port);
         } catch (IOException e) {
+            System.out.println("Server is not connected.");
+            // e.printStackTrace();
+        }
+        try {
+            System.out.println("Connection accepted " + server + "/" + InetAddress.getLocalHost().getHostAddress() + ":" + port);
+        } catch (UnknownHostException e) {
             e.printStackTrace();
         }
 
@@ -42,6 +49,8 @@ final class ChatClient {
             sOutput.writeObject(username);
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (NullPointerException e) {
+            System.out.print("");
         }
         Runnable r = new ListenFromServer();
         Thread t = new Thread(r);
@@ -59,16 +68,16 @@ final class ChatClient {
                     socket.close();
                     break;
                 }
-                if (message.startsWith("/msg")) {
-                    //TODO: send to only the username
-                    try {
-                        ChatMessage cm = (ChatMessage) sInput.readObject();
-                        sOutput.writeObject(new ChatMessage(message, 0, cm.getRecipient()));
-                    } catch (ClassNotFoundException e) {
-                        e.printStackTrace();
+                if(message.startsWith("/msg")) {
+                    if(message.substring(5, message.indexOf(" ", 5)).equals(username)) {
+                        System.out.println("You can't DM yourself.");
+                    } else {
+
+                        sOutput.writeObject(new ChatMessage(message, 0, message.substring(5, message.indexOf(" ", 5))));
                     }
+                } else {
+                    sOutput.writeObject(new ChatMessage(message, 0));
                 }
-                sOutput.writeObject(new ChatMessage(message, 0));
 
                 sOutput.flush();
             } catch (IOException e) {
@@ -173,6 +182,9 @@ final class ChatClient {
                 } catch (IOException | ClassNotFoundException e) {
 //                    e.printStackTrace();
                     System.out.println("You have Logged out.");
+                    break;
+                } catch (NullPointerException e) {
+                    break;
                 }
             }
         }
