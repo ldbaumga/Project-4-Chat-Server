@@ -1,3 +1,5 @@
+
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -51,7 +53,7 @@ final class ChatServer {
         }
     }
 
-    private synchronized void broadcast(String message) {
+    private synchronized void  broadcast(String message) {
         x = 0;
         ChatFilter cf = new ChatFilter(this.file);
         String newmessage = "";
@@ -62,20 +64,25 @@ final class ChatServer {
         }
     }
 
-    private synchronized void remove(int d) {
-        clients.remove(d);
-    }
-
-    private void directMessage(String message, String username) {
+    private synchronized void directMessage(String message, String username, int id) {
         x = 0;
-        ChatFilter cf = new ChatFilter(this.file);
-        String newmessage = "";
-        newmessage = cf.filter(message);
+        int u = -1;
         for (int x = 0; x < clients.size(); x++) {
-            if (this.clients.get(x).username.equalsIgnoreCase(username)) {
-                this.clients.get(x).writeMessage(newmessage);
+            if (clients.get(x).username.equals(username)) {
+                u = x;
+                break;
             }
         }
+//        System.out.println(message);
+        if (u == -1) {
+            clients.get(u).writeMessage("This user does not exist.");
+        } else {
+            clients.get(u).writeMessage(message);
+        }
+    }
+
+    private synchronized void remove(int d) {
+        clients.remove(d);
     }
 
     /*
@@ -118,20 +125,34 @@ final class ChatServer {
          */
         @Override
         public void run() {
-            System.out.println(username + " just connected.");
+            System.out.println(username + ": just connected.");
             // Read the username sent to you by client
             while (true) {
                 try {
                     cm = (ChatMessage) sInput.readObject();
                 } catch (IOException | ClassNotFoundException e) {
-                    System.out.println(username+ " disconnected.");
-                   // e.printStackTrace();
+                    System.out.println("There was an error receiving messages.");
+                    e.printStackTrace();
                     break;
+                }
+                if (cm.getRecipient() != null) {
+                    if (cm.getRecipient().equals(username)) {
+                        try {
+                            sOutput.writeObject("You cannot direct message yourself.");
+                        } catch (IOException e) {
+                            System.out.println("There was an error messaging yourself.");
+//                            e.printStackTrace();
+                            continue;
+                        }
+                    }
+                    String dirMsg = username + " -> " + cm.getMessage();
+                    directMessage(dirMsg, cm.getRecipient(), this.id);
+                    continue;
                 }
                 if (cm.getType() == 1) {
                     this.close();
                     remove(this.id);
-                    break;
+                    continue;
                 }
                 if (cm.getisListMessage()) {
                     String list = "";
@@ -143,28 +164,16 @@ final class ChatServer {
                         try {
                             sOutput.writeObject(list);
                         } catch (IOException e) {
-                            e.printStackTrace();
-                            break;
+                            System.out.println("There was an error listing clients.");
+//                            e.printStackTrace();
                         }
                     } else {
                         try {
-                            sOutput.writeObject("You're the only one connected.\n");
+                            sOutput.writeObject("Your the only one connected.\n");
                         } catch (IOException e) {
                             e.printStackTrace();
                             break;
                         }
-                    }
-                } else if (cm.getMessage().startsWith("/msg")) {
-                    boolean clientPresent = false;
-                    for(int i= 0; i<clients.size(); i++) {
-                        if(clients.get(i).username.equals(cm.getRecipient())){
-                            clientPresent = true;
-                            break;
-                        }
-                    }
-                    if(!username.equals(cm.getRecipient()) && clientPresent) {
-                        String actualMessage = cm.getMessage().substring(cm.getMessage().indexOf(" ", 5) + 1);
-                        directMessage(username + ": " + actualMessage, cm.getRecipient());
                     }
                 } else if (cm.getType() == 0) {
                     broadcast(username + ": " + cm.getMessage());
@@ -196,6 +205,7 @@ final class ChatServer {
             try {
                 sOutput.writeObject(newmsg + "\n");
             } catch (IOException e) {
+                System.out.println("There was an error writing a message.");
                 e.printStackTrace();
             }
             return true;
@@ -209,6 +219,7 @@ final class ChatServer {
                 sInput.close();
                 sOutput.close();
             } catch (IOException e) {
+                System.out.println("There was an error closing clients.");
                 e.printStackTrace();
             }
         }
