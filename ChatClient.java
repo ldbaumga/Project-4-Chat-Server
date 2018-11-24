@@ -35,6 +35,11 @@ final class ChatClient {
 //            System.out.println("There was a problem connecting to the server.");
 //            e.printStackTrace();
         }
+        try {
+            System.out.println("Connection accepted " + server + "/" + InetAddress.getLocalHost().getHostAddress() + ":" + port);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
 
         // Create your input and output streams
         try {
