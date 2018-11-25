@@ -127,7 +127,7 @@ final class ChatServer {
          */
         @Override
         public void run() {
-            System.out.println(username + ": just connected.");
+            System.out.println(d.format(new Date()) + " " + username + " just connected.");
             // Read the username sent to you by client
             while (true) {
                 try {
@@ -216,7 +216,7 @@ final class ChatServer {
 
         private void close() {
             try {
-                broadcast(username + ": disconnected with a LOGOUT message.");
+                broadcast(username + " disconnected with a LOGOUT message.");
                 socket.close();
                 sInput.close();
                 sOutput.close();
