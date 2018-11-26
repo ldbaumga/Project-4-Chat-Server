@@ -3,6 +3,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.Scanner;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 final class ChatClient {
     private ObjectInputStream sInput;
@@ -34,8 +36,13 @@ final class ChatClient {
         } catch (IOException | NullPointerException e) {
 //            System.out.println("There was a problem connecting to the server.");
 //            e.printStackTrace();
+            return false;
         }
-
+        try {
+            System.out.println("Connection accepted " + server + "/" + InetAddress.getLocalHost().getHostAddress() + ":" + port);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
         // Create your input and output streams
         try {
             sInput = new ObjectInputStream(socket.getInputStream());
