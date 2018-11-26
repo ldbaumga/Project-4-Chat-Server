@@ -18,16 +18,12 @@ final class ChatServer {
     private SimpleDateFormat d = new SimpleDateFormat("HH:mm:ss");
     private String file;
     private int x;
+    private int count = 0;
 
 
     private ChatServer(int port, String badwords) {
-        this.file = badwords;
         this.port = port;
-    }
-
-    private ChatServer() {
-        this.port = 1500;
-        this.file = "C:\\Users\\ldbau\\IdeaProjects\\Project4\\src\\badwords.txt";
+        this.file = badwords;
     }
 
     /*
@@ -79,12 +75,17 @@ final class ChatServer {
         } else {
             String newMsg = cf.filter(message);
 //        System.out.println(message);
+            clients.get(id).writeMessage(newMsg);
             clients.get(u).writeMessage(newMsg);
         }
     }
 
     private synchronized void remove(int d) {
+        if (count > 0) {
+            d--;
+        }
         clients.remove(d);
+        count++;
     }
 
     /*
@@ -93,7 +94,21 @@ final class ChatServer {
      *  If the port number is not specified 1500 is used
      */
     public static void main(String[] args) {
-        ChatServer server = new ChatServer(1500, "C:\\Users\\ldbau\\IdeaProjects\\Project4\\src\\badwords.txt");
+        int port;
+        String file;
+
+        if (args.length <= 0 || args[0] == null) {
+            port = 1500;
+        } else {
+            port = Integer.parseInt(args[0]);
+        }
+
+        if (args.length <= 0 || args[1] == null) {
+            file = "badwords.txt";
+        } else {
+            file = args[1];
+        }
+        ChatServer server = new ChatServer(port, file);
         server.start();
     }
 
@@ -127,14 +142,15 @@ final class ChatServer {
          */
         @Override
         public void run() {
-            System.out.println(d.format(new Date()) + " " + username + " just connected.");
+            System.out.println(username + ": just connected.");
+            count += 1;
             // Read the username sent to you by client
             while (true) {
                 try {
                     cm = (ChatMessage) sInput.readObject();
                 } catch (IOException | ClassNotFoundException e) {
-                    System.out.println("There was an error receiving messages.");
-                    e.printStackTrace();
+//                    System.out.println("There was an error receiving messages.");
+//                    e.printStackTrace();
                     break;
                 }
                 if (cm.getRecipient() != null) {
@@ -216,8 +232,7 @@ final class ChatServer {
 
         private void close() {
             try {
-                broadcast(username + " disconnected with a LOGOUT message.");
-                socket.close();
+                broadcast(username + ": disconnected with a LOGOUT message.");
                 sInput.close();
                 sOutput.close();
             } catch (IOException e) {
